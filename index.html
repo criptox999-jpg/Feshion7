@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BioShape.AI — Real 3D Humanoid</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #060913; color: #f8fafc; overflow-x: hidden; }
+        .glass-panel { background: rgba(13, 20, 38, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(56, 189, 248, 0.2); }
+        .neon-border { box-shadow: 0 0 25px rgba(6, 182, 212, 0.15); }
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #06b6d4; cursor: pointer; margin-top: -6px; box-shadow: 0 0 12px rgba(6, 182, 212, 0.9); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #1e293b; border-radius: 4px; }
+        #canvas-container { width: 100%; height: 440px; position: relative; cursor: grab; }
+        #canvas-container:active { cursor: grabbing; }
+        .step-hidden { display: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <header class="border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-extrabold text-slate-950 text-sm">3D</div>
+                <div>
+                    <span class="font-bold text-lg tracking-tight text-white">BioShape<span class="text-cyan-400">.AI</span></span>
+                </div>
+            </div>
+            <button onclick="showPaywall()" class="bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-lg transition shadow-lg shadow-orange-500/20">⚡ Founder Pass</button>
+        </div>
+    </header>
+
+    <!-- STEP 1: ONBOARDING -->
+    <div id="step-onboarding" class="max-w-xl w-full mx-auto px-4 py-12 my-auto">
+        <div class="glass-panel rounded-3xl p-6 sm:p-8 neon-border">
+            <div class="text-center mb-6">
+                <span class="text-xs font-bold uppercase tracking-widest text-cyan-400">Шаг 1 из 3</span>
+                <h1 class="text-2xl font-extrabold text-white mt-1">Твой 3D-двойник трансформации</h1>
+                <p class="text-xs text-slate-400 mt-1.5">Укажи параметры для построения 3D-модели тела.</p>
+            </div>
+            <div class="space-y-5">
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" id="onb-male" onclick="setOnbGender('male')" class="py-3 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs">Мужской</button>
+                    <button type="button" id="onb-female" onclick="setOnbGender('female')" class="py-3 rounded-xl bg-slate-900 text-slate-400 font-semibold text-xs border border-slate-800">Женский</button>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-400">Рост</span><span class="font-bold text-white"><span id="onb-val-height">178</span> см</span></div>
+                        <input type="range" id="onb-input-height" min="150" max="210" value="178" class="w-full" oninput="updateOnbText()">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-400">Вес</span><span class="font-bold text-cyan-400"><span id="onb-val-weight">88</span> кг</span></div>
+                        <input type="range" id="onb-input-weight" min="45" max="150" value="88" class="w-full" oninput="updateOnbText()">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-400">Талия</span><span class="font-bold text-cyan-400"><span id="onb-val-waist">96</span> см</span></div>
+                        <input type="range" id="onb-input-waist" min="55" max="140" value="96" class="w-full" oninput="updateOnbText()">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1.5"><span class="text-slate-400">Бёдра</span><span class="font-bold text-white"><span id="onb-val-hips">102</span> см</span></div>
+                        <input type="range" id="onb-input-hips" min="70" max="150" value="102" class="w-full" oninput="updateOnbText()">
+                    </div>
+                </div>
+                <button onclick="goToAuthStep()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-extrabold text-sm transition mt-4">Сгенерировать 3D-двойник ➔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 2: AUTH -->
+    <div id="step-auth" class="max-w-md w-full mx-auto px-4 py-12 my-auto step-hidden">
+        <div class="glass-panel rounded-3xl p-6 sm:p-8 neon-border text-center">
+            <span class="text-xs font-bold uppercase tracking-widest text-cyan-400">Шаг 2 из 3</span>
+            <h2 class="text-xl font-extrabold text-white mt-1 mb-2">Сохранить профиль</h2>
+            <p class="text-xs text-slate-400 mb-6">Введите Email для закрепления параметров.</p>
+            <div class="space-y-4">
+                <input type="email" id="auth-email" placeholder="name@example.com" class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs">
+                <button onclick="goToPaywallStep()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-extrabold text-sm">Продолжить к тарифам</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 3: PAYWALL -->
+    <div id="step-paywall" class="max-w-3xl w-full mx-auto px-4 py-8 my-auto step-hidden">
+        <div class="text-center mb-6">
+            <span class="text-xs font-bold uppercase tracking-widest text-amber-400">Шаг 3 из 3 • Тарифы</span>
+            <h2 class="text-2xl font-extrabold text-white mt-1">Выберите тариф BioShape.AI</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+                <div><div class="text-xs font-bold text-slate-400 uppercase">3 месяца</div><div class="text-2xl font-extrabold text-cyan-400 mt-3">$24</div></div>
+                <button onclick="activatePlan()" class="w-full py-2.5 rounded-xl bg-slate-800 text-white font-bold text-xs mt-6">Выбрать</button>
+            </div>
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800 flex flex-col justify-between">
+                <div><div class="text-xs font-bold text-cyan-400 uppercase">6 месяцев</div><div class="text-2xl font-extrabold text-cyan-400 mt-3">$39</div></div>
+                <button onclick="activatePlan()" class="w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs mt-6">Выбрать</button>
+            </div>
+            <div class="rounded-2xl p-5 bg-gradient-to-br from-slate-900 to-amber-950/40 border border-amber-500/50 relative flex flex-col justify-between neon-border">
+                <div class="absolute -top-2.5 right-4 bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full">Хит</div>
+                <div><div class="text-xs font-bold text-amber-400 uppercase">Founder Pass ⚡ (1 Год)</div><div class="text-2xl font-extrabold text-white mt-3">$29 <span class="text-xs font-normal text-amber-400">навсегда</span></div></div>
+                <button onclick="activatePlan()" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-extrabold text-xs mt-6">Активировать</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 4: MAIN APP -->
+    <main id="step-app" class="max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 step-hidden">
+        <div class="lg:col-span-4 space-y-5">
+            <div class="glass-panel rounded-2xl p-5 neon-border">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300">Параметры тела</h2>
+                    <div class="flex bg-slate-900 rounded-lg p-0.5 border border-slate-800">
+                        <button id="btn-male" onclick="setGender('male')" class="px-3 py-1 text-xs font-semibold rounded-md bg-cyan-500 text-slate-950">М</button>
+                        <button id="btn-female" onclick="setGender('female')" class="px-3 py-1 text-xs font-semibold rounded-md text-slate-400">Ж</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Вес</span><span class="font-bold text-cyan-400"><span id="val-weight">88</span> кг</span></div>
+                        <input type="range" id="input-weight" min="45" max="150" value="88" class="w-full" oninput="updateAvatar()">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Рост</span><span class="font-bold text-white"><span id="val-height">178</span> см</span></div>
+                        <input type="range" id="input-height" min="150" max="210" value="178" class="w-full" oninput="updateAvatar()">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Талия</span><span class="font-bold text-cyan-400"><span id="val-waist">96</span> см</span></div>
+                        <input type="range" id="input-waist" min="55" max="140" value="96" class="w-full" oninput="updateAvatar()">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Дефицит</span><span class="font-bold text-emerald-400">-<span id="val-deficit">500</span> ккал</span></div>
+                        <input type="range" id="input-deficit" min="200" max="900" step="50" value="500" class="w-full" oninput="updateAvatar()">
+                    </div>
+                </div>
+            </div>
+            <div class="glass-panel rounded-2xl p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Прогноз</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800"><div class="text-[11px] text-slate-400">Норма</div><div id="stat-tdee" class="text-lg font-extrabold text-white">2 150 ккал</div></div>
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800"><div class="text-[11px] text-slate-400">Вес</div><div id="stat-proj-weight" class="text-lg font-extrabold text-emerald-400">88.0 кг</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-5 flex flex-col">
+            <div class="glass-panel rounded-2xl p-4 neon-border flex-1 flex flex-col justify-between relative overflow-hidden">
+                <div class="flex items-center justify-between z-10">
+                    <span class="text-xs font-semibold text-cyan-400">3D HUMANOID SCAN</span>
+                    <span id="timeline-badge" class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-800 text-slate-200">Сегодня</span>
+                </div>
+                <div id="canvas-container" class="my-2 rounded-xl overflow-hidden bg-gradient-to-b from-slate-900/40 to-slate-950/90 border border-slate-800/60 flex items-center justify-center">
+                    <div id="loader-text" class="text-xs text-cyan-400 animate-pulse absolute">Загрузка 3D-модели человека...</div>
+                </div>
+                <div class="z-10">
+                    <div class="grid grid-cols-4 gap-1.5 bg-slate-950/90 p-1.5 rounded-xl border border-slate-800">
+                        <button onclick="setTimeline(0)" id="time-0" class="time-btn py-2 text-xs font-bold rounded-lg bg-cyan-500 text-slate-950">Сегодня</button>
+                        <button onclick="setTimeline(30)" id="time-30" class="time-btn py-2 text-xs font-semibold rounded-lg text-slate-400">+30д</button>
+                        <button onclick="setTimeline(60)" id="time-60" class="time-btn py-2 text-xs font-semibold rounded-lg text-slate-400">+60д</button>
+                        <button onclick="setTimeline(90)" id="time-90" class="time-btn py-2 text-xs font-semibold rounded-lg text-slate-400">+90д</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-3 space-y-4">
+            <div class="glass-panel rounded-2xl p-5 border border-slate-800">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2">Next-Gen Ecosystem</h3>
+                <p class="text-xs text-slate-400">Интеграция CGM-биосенсоров и LiDAR-сканов входит в Founder Pass.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let userProfile = { gender: 'male', height: 178, weight: 88, waist: 96, hips: 102 };
+        function updateOnbText() {
+            userProfile.height = document.getElementById('onb-input-height').value;
+            userProfile.weight = document.getElementById('onb-input-weight').value;
+            userProfile.waist = document.getElementById('onb-input-waist').value;
+            userProfile.hips = document.getElementById('onb-input-hips').value;
+            document.getElementById('onb-val-height').innerText = userProfile.height;
+            document.getElementById('onb-val-weight').innerText = userProfile.weight;
+            document.getElementById('onb-val-waist').innerText = userProfile.waist;
+            document.getElementById('onb-val-hips').innerText = userProfile.hips;
+        }
+        function setOnbGender(g) {
+            userProfile.gender = g;
+            document.getElementById('onb-male').className = g === 'male' ? 'py-3 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs' : 'py-3 rounded-xl bg-slate-900 text-slate-400 font-semibold text-xs border border-slate-800';
+            document.getElementById('onb-female').className = g === 'female' ? 'py-3 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs' : 'py-3 rounded-xl bg-slate-900 text-slate-400 font-semibold text-xs border border-slate-800';
+        }
+        function goToAuthStep() { document.getElementById('step-onboarding').classList.add('step-hidden'); document.getElementById('step-auth').classList.remove('step-hidden'); }
+        function goToPaywallStep() { document.getElementById('step-auth').classList.add('step-hidden'); document.getElementById('step-paywall').classList.remove('step-hidden'); }
+        function showPaywall() { document.getElementById('step-onboarding').classList.add('step-hidden'); document.getElementById('step-auth').classList.add('step-hidden'); document.getElementById('step-paywall').classList.remove('step-hidden'); }
+        function activatePlan() {
+            document.getElementById('input-weight').value = userProfile.weight;
+            document.getElementById('input-height').value = userProfile.height;
+            document.getElementById('input-waist').value = userProfile.waist;
+            setGender(userProfile.gender);
+            document.getElementById('step-paywall').classList.add('step-hidden');
+            document.getElementById('step-app').classList.remove('step-hidden');
+            updateAvatar();
+            onWindowResize();
+        }
+
+        // --- Real 3D Humanoid GLB Loader ---
+        let state = { gender: 'male', weight: 88, height: 178, waist: 96, deficit: 500, daysAhead: 0 };
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1000);
+        camera.position.set(0, 1.15, 3.1);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth || 350, 440);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05; controls.enableZoom = false; controls.target.set(0, 0.95, 0);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+        const dirLight1 = new THREE.DirectionalLight(0x06b6d4, 1.8); dirLight1.position.set(2, 4, 3); scene.add(dirLight1);
+        const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 1.0); dirLight2.position.set(-2, 2, -3); scene.add(dirLight2);
+        scene.add(new THREE.PolarGridHelper(1.2, 16, 8, 64, 0x06b6d4, 0x1e293b));
+
+        let humanModel = null;
+        const loader = new THREE.GLTFLoader();
+
+        // Загрузка настоящей 3D-модели человека (Xbot из официального репозитория Three.js)
+        loader.load('https://threejs.org/examples/models/gltf/Xbot.glb', function(gltf) {
+            humanModel = gltf.scene;
+            document.getElementById('loader-text').style.display = 'none';
+
+            // Применяем футуристичный голографический материал к анатомической модели
+            const holoMat = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9,
+                emissive: 0x0284c7,
+                emissiveIntensity: 0.35,
+                roughness: 0.25,
+                metalness: 0.75
+            });
+
+            humanModel.traverse((child) => {
+                if (child.isMesh) {
+                    child.material = holoMat;
+                }
+            });
+
+            scene.add(humanModel);
+            updateAvatar();
+        }, undefined, function(error) {
+            document.getElementById('loader-text').innerText = 'Ошибка загрузки 3D-модели';
+        });
+
+        function setGender(g) {
+            state.gender = g;
+            document.getElementById('btn-male').className = g === 'male' ? 'px-3 py-1 text-xs font-semibold rounded-md bg-cyan-500 text-slate-950' : 'px-3 py-1 text-xs font-semibold rounded-md text-slate-400';
+            document.getElementById('btn-female').className = g === 'female' ? 'px-3 py-1 text-xs font-semibold rounded-md bg-cyan-500 text-slate-950' : 'px-3 py-1 text-xs font-semibold rounded-md text-slate-400';
+            updateAvatar();
+        }
+
+        function setTimeline(days) {
+            state.daysAhead = days;
+            document.querySelectorAll('.time-btn').forEach(btn => btn.className = 'time-btn py-2 text-xs font-semibold rounded-lg text-slate-400');
+            document.getElementById(`time-${days}`).className = 'time-btn py-2 text-xs font-bold rounded-lg bg-cyan-500 text-slate-950';
+            document.getElementById('timeline-badge').innerText = days === 0 ? 'Сегодня' : `Прогноз: +${days}д`;
+            updateAvatar();
+        }
+
+        function updateAvatar() {
+            state.weight = parseFloat(document.getElementById('input-weight').value);
+            state.height = parseFloat(document.getElementById('input-height').value);
+            state.waist = parseFloat(document.getElementById('input-waist').value);
+            state.deficit = parseFloat(document.getElementById('input-deficit').value);
+
+            document.getElementById('val-weight').innerText = state.weight;
+            document.getElementById('val-height').innerText = state.height;
+            document.getElementById('val-waist').innerText = state.waist;
+            document.getElementById('val-deficit').innerText = state.deficit;
+
+            const bmr = state.gender === 'male' ? (10 * state.weight + 6.25 * state.height - 5 * 30 + 5) : (10 * state.weight + 6.25 * state.height - 5 * 30 - 161);
+            const tdee = Math.round(bmr * 1.35);
+            const kgLost = (state.deficit * state.daysAhead) / 7700;
+            const projectedWeight = Math.max(42, state.weight - kgLost);
+            const projectedWaist = Math.max(52, state.waist - (kgLost * 0.9));
+
+            document.getElementById('stat-tdee').innerText = `${tdee} ккал`;
+            document.getElementById('stat-proj-weight').innerText = `${projectedWeight.toFixed(1)} кг`;
+
+            if (humanModel) {
+                const heightScale = state.height / 178;
+                const widthScale = (projectedWaist / 88) * (state.gender === 'female' ? 0.92 : 1.0);
+                humanModel.scale.set(widthScale, heightScale, widthScale);
+            }
+        }
+
+        function onWindowResize() {
+            if(container.clientWidth > 0) {
+                camera.aspect = container.clientWidth / 440;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, 440);
+            }
+        }
+        window.addEventListener('resize', onWindowResize);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (humanModel) {
+                humanModel.rotation.y += 0.005;
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
